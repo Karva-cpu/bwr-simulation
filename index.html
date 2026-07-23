@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RBWR Unit 2 Simulator - v65</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+
+
+    <!-- TOP BAR -->
+    <div id="top-bar">
+        <!-- Annunciators Panel (Grid Layout) -->
+        <div class="annunciator-box">
+            <!-- Row 1 -->
+            <div class="ann-tile c-red" id="ann-scram">REACTOR<br>SCRAM</div>
+            <div class="ann-tile c-red" id="ann-aprm-hi">APRM<br>HIGH</div>
+            <div class="ann-tile c-red" id="ann-turb">TURBINE<br>TRIP</div>
+            <div class="ann-tile c-amber" id="ann-ovsp">TURBINE<br>OVERSPEED</div>
+            <div class="ann-tile c-red" id="ann-vac">NO<br>VACUUM</div>
+            <div class="ann-tile c-red" id="ann-pres-hi">RPV PRESS<br>HIGH</div>
+            <div class="ann-tile c-amber" id="ann-lvl-hi">LEVEL<br>HIGH</div>
+            <div class="ann-tile c-red" id="ann-lvl-hihi">LEVEL<br>HI-HI</div>
+            <div class="ann-tile c-white" id="ann-demand-met">DEMAND<br>MET</div>
+            <div class="ann-tile c-red" id="ann-scram-fail">SCRAM<br>FAILURE</div>
+
+            <!-- Row 2 -->
+            <div class="ann-tile c-red" id="ann-ads-active">ADS<br>ACTIVE</div>
+            <div class="ann-tile c-amber" id="ann-ads-armed">ADS<br>ARMED</div>
+            <div class="ann-tile c-blue" id="ann-lpci">LPCI<br>ACTIVE</div>
+            <div class="ann-tile c-blue" id="ann-rcic">RCIC<br>ACTIVE</div>
+            <div class="ann-tile c-amber" id="ann-srv-12">SRV 1/2<br>OPEN</div>
+            <div class="ann-tile c-amber" id="ann-srv-34">SRV 3/4<br>OPEN</div>
+            <div class="ann-tile c-amber" id="ann-srv-56">SRV 5/6<br>OPEN</div>
+            <div class="ann-tile c-red" id="ann-vib">TURBINE<br>VIB HI</div>
+            <div class="ann-tile c-amber" id="ann-cav">PUMP<br>CAV</div>
+            <div class="ann-tile c-amber" id="ann-lvl-lo">LEVEL<br>LOW</div>
+            <div class="ann-tile c-red" id="ann-lvl-lolo">LEVEL<br>LO-LO</div>
+            <div class="ann-tile c-red" id="ann-boron">BORON<br>INJECTION</div>
+        </div>
+        <div id="disclaimer" style="font-size: 10px; letter-spacing: 2px;">AI Generated Simulation</div>
+
+        <div class="display-group">
+            <div class="digital-frame">
+                <span class="d-lbl">SRM (cps)</span>
+                <div class="d-screen"><span class="d-val" id="d-srm" style="font-size:15px;">0</span></div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">APRM (%)</span>
+                <div class="d-screen"><span class="d-val" id="d-aprm">0.0</span></div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">AVG ROD POS</span>
+                <div class="d-screen"><span class="d-val" id="d-avg-rod">0.0</span></div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">CORE TEMP (&deg;C)</span>
+                <div class="d-screen"><span class="d-val" id="d-temp">20</span></div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">PRESSURE (kPa)</span>
+                <div class="d-screen"><span class="d-val" id="d-pres">0</span></div>
+                <div class="d-sub">(Optimal: 7100)</div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">GEN OUT (MW)</span>
+                <div class="d-screen"><span class="d-val" id="d-mw">0</span></div>
+            </div>
+            <div class="digital-frame">
+                <span class="d-lbl">TURBINE (RPM)</span>
+                <div class="d-screen"><span class="d-val" id="d-rpm">0</span></div>
+                <div class="d-sub">(Optimal: 3600)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEWPORT CONTAINER -->
+    <div id="viewport-container" class="panel-visible">
+        <!-- MAIN CONSOLE (MCR) -->
+        <div id="main-console" class="panel-visible">
+
+            <!-- COL 1: ROD MATRIX -->
+            <div class="panel-col" id="col-rod-matrix">
+                <div class="c-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    Control Rod Matrix
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <div id="auditor-accuracy-display" style="font-family:'Courier New', monospace; font-size:9px; color:#00ffcc; background:#001515; border:1px solid #005555; padding:1px 4px; border-radius:2px; letter-spacing:0.5px;" title="Physics Energy & Mass Conservation Accuracy">
+                            100.0%
+                        </div>
+                        <div class="rod-drop-panel" id="rod-drop-indicator">
+                            <span>ROD DROP</span>
+                            <div class="led-yellow-blink" id="rod-drop-led"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="matrix-container" id="rod-grid"></div>
+
+                <!-- BANK SELECTION PANEL (Modern Blackbox Design) -->
+                <div class="bank-box-container">
+                    <div class="bank-box-title">ROD BANK SELECT</div>
+                    <div class="bank-box-grid">
+                        <div class="bank-btn" id="btn-bank1" onclick="Core.selectBank(1)">
+                            <span class="bank-id">01</span>
+                            <span class="bank-tag">BANK 1</span>
+                        </div>
+                        <div class="bank-btn" id="btn-bank2" onclick="Core.selectBank(2)">
+                            <span class="bank-id">02</span>
+                            <span class="bank-tag">BANK 2</span>
+                        </div>
+                        <div class="bank-btn" id="btn-bank3" onclick="Core.selectBank(3)">
+                            <span class="bank-id">03</span>
+                            <span class="bank-tag">BANK 3</span>
+                        </div>
+                        <div class="bank-btn" id="btn-bank4" onclick="Core.selectBank(4)">
+                            <span class="bank-id">04</span>
+                            <span class="bank-tag">BANK 4</span>
+                        </div>
+                    </div>
+                    <div class="bank-btn clear" id="btn-bank0" onclick="Core.selectBank(0)">
+                        DESELECT ALL
+                    </div>
+                </div>
+
+
+                <!-- Electrical System -->
+                <div class="ctrl-box" style="margin-top:10px; padding: 5px;">
+                    <div class="c-title" style="color:#aaa; font-size: 10px;">ELECTRICAL GRID</div>
+                    <div class="elect-container">
+                        <!-- Source LEDs -->
+                        <div class="elect-sources">
+                            <div class="source-unit">
+                                <div class="led-ind" id="led-grid"></div>
+                                <span class="sw-lbl">GRID 345KV</span>
+                            </div>
+                            <div class="source-unit">
+                                <div class="led-ind" id="led-gen"></div>
+                                <span class="sw-lbl">MAIN GEN</span>
+                            </div>
+                        </div>
+
+                        <div class="elect-row">
+                            <div class="elect-sw-unit">
+                                <span class="sw-lbl">STARTUP XFMR</span>
+                                <div class="sw-toggle mini" id="sw-xfmr" onclick="UI.toggleElect('xfmr')">
+                                    <div class="sw-handle mini"></div>
+                                </div>
+                            </div>
+                            <div class="elect-line-v mini" id="line-xfmr"></div>
+                        </div>
+
+                        <div class="elect-bus-row">
+                            <div class="bus-bar thin" id="bus-a-bar">BUS A 4.16KV</div>
+                        </div>
+
+                        <div class="elect-row split">
+                            <div class="elect-sw-unit">
+                                <span class="sw-lbl">GEN -> BUS A</span>
+                                <div class="sw-toggle mini" id="sw-busA" onclick="UI.toggleElect('busA_sw')">
+                                    <div class="sw-handle mini"></div>
+                                </div>
+                            </div>
+                            <div class="elect-sw-unit">
+                                <span class="sw-lbl">GEN -> BUS B</span>
+                                <div class="sw-toggle mini" id="sw-busB" onclick="UI.toggleElect('busB_sw')">
+                                    <div class="sw-handle mini"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="elect-bus-row">
+                            <div class="bus-bar thin" id="bus-b-bar">BUS B 4.16KV</div>
+                        </div>
+
+                        <div class="elect-row" style="border-top: 1px solid #333; padding-top:4px; margin-top:2px;">
+                            <div class="elect-batt-panel">
+                                <span class="sw-lbl" style="margin-right:5px;">DC BATTERY</span>
+                                <div class="batt-meter">
+                                    <div class="batt-fill" id="batt-fill"></div>
+                                </div>
+                                <span id="batt-txt">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL 2: ROD CONTROL & SCRAM -->
+            <div class="panel-col" id="col-rod-ctrl">
+                <div class="ctrl-box">
+                    <div class="c-title">Rod Movement</div>
+                    <div class="btn-group">
+                        <div class="c-btn" id="btn-in" onclick="Core.setMove('INSERT')">INSERT</div>
+                        <div class="c-btn active" id="btn-stop" onclick="Core.setMove('NEUTRAL')">STOP</div>
+                        <div class="c-btn" id="btn-out" onclick="Core.setMove('WITHDRAW')">WITH.</div>
+                    </div>
+                </div>
+                <div class="ctrl-box">
+                    <div class="c-title">Rod Speed</div>
+                    <div class="btn-group">
+                        <div class="c-btn" id="btn-slow" onclick="Core.setSpeed('SLOW')">SLOW</div>
+                        <div class="c-btn active" id="btn-avg" onclick="Core.setSpeed('AVG')">AVG</div>
+                        <div class="c-btn" id="btn-fast" onclick="Core.setSpeed('FAST')">FAST</div>
+                    </div>
+                </div>
+
+
+                <div class="scram-section" style="margin-top:6px;">
+                    <div class="c-title" style="color:#f55; border-color:#500;">MANUAL SCRAM</div>
+                    <div class="scram-housing">
+                        <div style="text-align:center">
+                            <div class="res-btn" onclick="Coolant.resetScram('A')"></div><span
+                                style="font-size:8px;color:#888">RES A</span>
+                        </div>
+                        <div style="display:flex; gap:10px; background:#300; padding:5px; border-radius:4px;">
+                            <div class="s-btn" id="sb-a" onclick="Coolant.pressScram('A')"></div>
+                            <div class="s-btn" id="sb-b" onclick="Coolant.pressScram('B')"></div>
+                        </div>
+                        <div style="text-align:center">
+                            <div class="res-btn" onclick="Coolant.resetScram('B')"></div><span
+                                style="font-size:8px;color:#888">RES B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ctrl-box" style="margin-top:10px;">
+                    <div class="c-title">Network Demand</div>
+                    <div
+                        style="background:#000; border:1px solid #444; border-radius:3px; position:relative; overflow:hidden;">
+                        <canvas id="demand-graph" width="230" height="100"></canvas>
+                    </div>
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; padding:0 5px;">
+                        <div style="font-family:'Courier New'; color:#0f0; font-size:11px; font-weight:bold;">
+                            TARGET: <span id="d-demand-val">800</span> MW
+                        </div>
+                        <div style="font-family:'Courier New'; color:#fff; font-size:11px; font-weight:bold;">
+                            POINTS: <span id="d-points">0</span>
+                        </div>
+                    </div>
+                    <!-- Demand Timer -->
+                    <div
+                        style="text-align:center; font-family:'Courier New'; font-size:9px; color:#666; margin-top:2px;">
+                        NEXT CHANGE IN: <span id="d-demand-timer">--</span>s
+                    </div>
+                </div>
+
+                <!-- Services (Moved from Column 4) -->
+                <div class="ctrl-box" style="margin-top:10px;">
+                    <div class="c-title">Services</div>
+                    <!-- SDC removed from MCR -->
+
+                    <!-- RADIATION MONITORING STATION -->
+                    <div class="rad-monitor-frame">
+                        <div class="rad-head">
+                            <span class="rad-title">RADIATION MONITORING</span>
+                            <div class="rad-led" id="rad-status-led"></div>
+                        </div>
+                        <div class="rad-grid">
+                            <div class="rad-row">
+                                <span class="rad-lbl">RPV AREA</span>
+                                <span class="rad-val" id="rad-rpv">0.00 mSv/h</span>
+                            </div>
+                            <div class="rad-row">
+                                <span class="rad-lbl">TURBINE HALL</span>
+                                <span class="rad-val" id="rad-turb">0.00 mSv/h</span>
+                            </div>
+                            <div class="rad-row">
+                                <span class="rad-lbl">CONDENSER</span>
+                                <span class="rad-val" id="rad-cond">0.00 mSv/h</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SYSTEM UPTIME CLOCK -->
+                    <div class="uptime-clock-frame">
+                        <span class="uptime-lbl">SYSTEM UPTIME</span>
+                        <div id="uptime-display">00:00:00</div>
+                    </div>
+
+                    <!-- VIGIL SYSTEM -->
+                    <div class="rad-monitor-frame" style="margin-top:10px; overflow: hidden;">
+                        <div class="rad-head">
+                            <span class="rad-title" style="letter-spacing: 1px;">VIGIL</span>
+                            <div class="rad-led safe pulse" id="vigil-status-led"></div>
+                        </div>
+                        <div style="padding: 8px 4px; text-align: center; border-top: 1px solid #333; min-height: 32px; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 0 0 2px 2px; width: 100%; box-sizing: border-box; overflow: hidden;">
+                            <div id="vigil-status-text" class="ads-status-msg status-safe" style="font-size: 10px; margin-bottom: 0; white-space: normal; line-height: 1.2; word-break: break-word; width: 100%; max-width: 160px;">MONITORING</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL 3: TURBINE & STEAM -->
+            <div class="panel-col" id="col-turbine">
+                <div class="c-title">Turbine & Generator</div>
+
+                <div class="synch-wrapper">
+                    <!-- Vibration -->
+                    <div style="display:flex; flex-direction:column; align-items:center; margin-right:5px;">
+                        <div class="vib-meter">
+                            <div class="vib-fill" id="vib-fill"></div>
+                        </div>
+                        <span style="font-size:8px; color:#aaa; margin-top:2px;">VIB</span>
+                    </div>
+
+                    <!-- Synchroscope -->
+                    <div class="synch-dial">
+                        <div class="s-mark"></div>
+                        <div class="s-needle" id="synch-needle"></div>
+                    </div>
+
+                    <!-- MSIV Switch -->
+                    <div class="msiv-box">
+                        <div class="msiv-switch closed" id="msiv-sw" onclick="Turbine.toggleMSIV()">
+                            <div class="msiv-bar"></div>
+                        </div>
+                        <span style="font-size:9px; color:#888;">MSIV</span>
+                    </div>
+
+                    <!-- STOP VALVE CONTROL (Updated Layout) -->
+                    <div class="msiv-box">
+                        <div class="msiv-switch closed" id="sv-sw" onclick="Turbine.toggleStopValve()"
+                            style="display:flex; align-items:center; justify-content:center; font-size:8px; color:#aaa; font-weight:bold; text-align:center; line-height:1.1;">
+                            SV<br>CLOSED
+                        </div>
+                        <span style="font-size:9px; color:#888;">STOP V.</span>
+                    </div>
+
+                    <!-- Breaker -->
+                    <div class="breaker-box">
+                        <div class="brk-switch" id="brk-sw" onclick="Turbine.toggleBreaker()">
+                            <div class="handle"></div>
+                            <span id="brk-txt">OPEN</span>
+                        </div>
+                        <span style="font-size:9px; color:#888;">GEN BREAKER</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-box">
+                    <div class="c-title">Steam Controls</div>
+                    <!-- Bypass -->
+                    <div class="slide-group">
+                        <div class="slide-head"><span>BYPASS</span><span id="lbl-bp" class="val-txt">OPEN: 0%</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-bp"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="bp-m5" onclick="Turbine.setSteam('BP',-5)">--</div>
+                            <div class="adj-btn" id="bp-m1" onclick="Turbine.setSteam('BP',-1)">-</div>
+                            <div class="adj-btn active" id="bp-0" onclick="Turbine.setSteam('BP',0)">.</div>
+                            <div class="adj-btn" id="bp-p1" onclick="Turbine.setSteam('BP',1)">+</div>
+                            <div class="adj-btn" id="bp-p5" onclick="Turbine.setSteam('BP',5)">++</div>
+                        </div>
+                    </div>
+                    <!-- Turbine -->
+                    <div class="slide-group">
+                        <div class="slide-head"><span>TURBINE INTAKE</span><span id="lbl-tb" class="val-txt">OPEN:
+                                0%</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-tb"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="tb-m5" onclick="Turbine.setSteam('TB',-5)">--</div>
+                            <div class="adj-btn" id="tb-m1" onclick="Turbine.setSteam('TB',-1)">-</div>
+                            <div class="adj-btn active" id="tb-0" onclick="Turbine.setSteam('TB',0)">.</div>
+                            <div class="adj-btn" id="tb-p1" onclick="Turbine.setSteam('TB',1)">+</div>
+                            <div class="adj-btn" id="tb-p5" onclick="Turbine.setSteam('TB',5)">++</div>
+                        </div>
+                        <div class="slide-ctrls" style="margin-top:2px; border-top:1px solid #333; padding-top:2px;">
+                            <div style="font-size:8px; color:#666; width:100%; text-align:center;">PRECISE</div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn fine" id="tb-fm5" onclick="Turbine.setSteam('TB_FINE',-0.5)">--</div>
+                            <div class="adj-btn fine" id="tb-fm1" onclick="Turbine.setSteam('TB_FINE',-0.1)">-</div>
+                            <div class="adj-btn fine active" id="tb-f0" onclick="Turbine.setSteam('TB_FINE',0)">.</div>
+                            <div class="adj-btn fine" id="tb-fp1" onclick="Turbine.setSteam('TB_FINE',0.1)">+</div>
+                            <div class="adj-btn fine" id="tb-fp5" onclick="Turbine.setSteam('TB_FINE',0.5)">++</div>
+                        </div>
+                        <div class="slide-ctrls" style="margin-top:2px; display:flex; gap:2px;">
+                            <div class="tiny-btn" id="btn-auto-pres" onclick="Turbine.toggleAutoPressure()">AUTO PRES</div>
+                            <div class="tiny-btn" id="btn-auto-runup" onclick="Turbine.toggleAutoRunup()">AUTO RUNUP</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONDENSER PANEL -->
+                <div class="ctrl-box" style="margin-top:5px;">
+                    <div class="c-title">Condenser & Vacuum</div>
+
+                    <div style="text-align:center; font-family:'Courier New'; color:#0f0; margin-bottom:2px; font-size:12px; font-weight:bold;"
+                        id="d-vac">
+                        101.0 kPa
+                    </div>
+
+                    <div id="vac-status"
+                        style="text-align:center; font-family:'Courier New'; font-size:9px; color:#aaa; font-weight:bold; margin-bottom:4px;">
+                        [ ATMOSPHERIC ]</div>
+
+                    <!-- Vacuum Zone Labels -->
+                    <div
+                        style="display:flex; font-family:'Courier New'; font-size:7px; color:#aaa; margin-bottom:1px; font-weight:bold;">
+                        <div style="width: 13%; text-align:left;">5-18</div>
+                        <div style="width: 7%; text-align:left; padding-left:1px;">18-25</div>
+                        <div style="width: 80%; text-align:center;">>25 kPa</div>
+                    </div>
+
+                    <!-- Vacuum Zone Bar -->
+                    <div class="vac-zone-container">
+                        <div class="vac-zone-bar">
+                            <div class="vac-zone green" style="width: 13%;"></div> <!-- 5 to 18 (range 100) -->
+                            <div class="vac-zone yellow" style="width: 7%;"></div> <!-- 18 to 25 -->
+                            <div class="vac-zone red" style="width: 80%;"></div> <!-- 25 to 105 -->
+                            <div id="vac-marker" class="vac-marker"></div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group" style="margin-bottom:5px;">
+                        <div class="c-btn active" id="cond-man" onclick="Turbine.toggleCondMode('MAN')">MAN</div>
+                        <div class="c-btn" id="cond-auto" onclick="Turbine.toggleCondMode('AUTO')">AUTO</div>
+                    </div>
+
+                    <!-- SJAE A -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>SJAE A</span><span id="lbl-sjaeA" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-sjaeA"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="sjaeA-m5" onclick="Turbine.setCondPump('sjaeA', -5)">--</div>
+                            <div class="adj-btn" id="sjaeA-m1" onclick="Turbine.setCondPump('sjaeA', -1)">-</div>
+                            <div class="adj-btn active" id="sjaeA-0" onclick="Turbine.setCondPump('sjaeA', 0)">.</div>
+                            <div class="adj-btn" id="sjaeA-p1" onclick="Turbine.setCondPump('sjaeA', 1)">+</div>
+                            <div class="adj-btn" id="sjaeA-p5" onclick="Turbine.setCondPump('sjaeA', 5)">++</div>
+                        </div>
+                    </div>
+
+                    <!-- SJAE B -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>SJAE B</span><span id="lbl-sjaeB" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-sjaeB"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="sjaeB-m5" onclick="Turbine.setCondPump('sjaeB', -5)">--</div>
+                            <div class="adj-btn" id="sjaeB-m1" onclick="Turbine.setCondPump('sjaeB', -1)">-</div>
+                            <div class="adj-btn active" id="sjaeB-0" onclick="Turbine.setCondPump('sjaeB', 0)">.</div>
+                            <div class="adj-btn" id="sjaeB-p1" onclick="Turbine.setCondPump('sjaeB', 1)">+</div>
+                            <div class="adj-btn" id="sjaeB-p5" onclick="Turbine.setCondPump('sjaeB', 5)">++</div>
+                        </div>
+                    </div>
+
+                    <!-- CC A -->
+                    <div class="slide-group" style="margin-top:6px; border-top:1px dashed #333; padding-top:6px;">
+                        <div class="slide-head"><span>CIRC A</span><span id="lbl-ccA" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-ccA" style="background:#00bfff;"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="ccA-m5" onclick="Turbine.setCondPump('ccA', -5)">--</div>
+                            <div class="adj-btn" id="ccA-m1" onclick="Turbine.setCondPump('ccA', -1)">-</div>
+                            <div class="adj-btn active" id="ccA-0" onclick="Turbine.setCondPump('ccA', 0)">.</div>
+                            <div class="adj-btn" id="ccA-p1" onclick="Turbine.setCondPump('ccA', 1)">+</div>
+                            <div class="adj-btn" id="ccA-p5" onclick="Turbine.setCondPump('ccA', 5)">++</div>
+                        </div>
+                    </div>
+
+                    <!-- CC B -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>CIRC B</span><span id="lbl-ccB" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-ccB" style="background:#00bfff;"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="ccB-m5" onclick="Turbine.setCondPump('ccB', -5)">--</div>
+                            <div class="adj-btn" id="ccB-m1" onclick="Turbine.setCondPump('ccB', -1)">-</div>
+                            <div class="adj-btn active" id="ccB-0" onclick="Turbine.setCondPump('ccB', 0)">.</div>
+                            <div class="adj-btn" id="ccB-p1" onclick="Turbine.setCondPump('ccB', 1)">+</div>
+                            <div class="adj-btn" id="ccB-p5" onclick="Turbine.setCondPump('ccB', 5)">++</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL 4: COOLANT SYSTEMS -->
+            <div class="panel-col" id="col-coolant">
+                <div class="ctrl-box">
+                    <div class="c-title">Main Cooling Circuit</div>
+                    <div style="margin-bottom:5px; text-align:center;">
+                        <div class="c-btn pwr-btn" id="btn-fw-sys" onclick="Coolant.toggleSys('FW')">MCC POWER: OFF
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-bottom:5px;">
+                        <div class="c-btn active" id="fw-man" onclick="Coolant.setMode('MAN')">MAN</div>
+                        <div class="c-btn" id="fw-auto" onclick="Coolant.setMode('AUTO')">AUTO</div>
+                    </div>
+
+                    <!-- RF PUMPS (Formerly Feedwater) -->
+                    <div style="font-size:8px; color:#aaa; margin-left:3px; margin-top:4px;">REACTOR FEED PUMPS</div>
+                    <!-- RF 1 -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>RF 1</span><span id="lbl-fwa" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-fwa"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="fwa-m5" onclick="Coolant.setPump('FW','A',-5)">--</div>
+                            <div class="adj-btn" id="fwa-m1" onclick="Coolant.setPump('FW','A',-1)">-</div>
+                            <div class="adj-btn active" id="fwa-0" onclick="Coolant.setPump('FW','A',0)">.</div>
+                            <div class="adj-btn" id="fwa-p1" onclick="Coolant.setPump('FW','A',1)">+</div>
+                            <div class="adj-btn" id="fwa-p5" onclick="Coolant.setPump('FW','A',5)">++</div>
+                        </div>
+                    </div>
+                    <!-- RF 2 -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>RF 2</span><span id="lbl-fwb" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-fwb"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="fwb-m5" onclick="Coolant.setPump('FW','B',-5)">--</div>
+                            <div class="adj-btn" id="fwb-m1" onclick="Coolant.setPump('FW','B',-1)">-</div>
+                            <div class="adj-btn active" id="fwb-0" onclick="Coolant.setPump('FW','B',0)">.</div>
+                            <div class="adj-btn" id="fwb-p1" onclick="Coolant.setPump('FW','B',1)">+</div>
+                            <div class="adj-btn" id="fwb-p5" onclick="Coolant.setPump('FW','B',5)">++</div>
+                        </div>
+                    </div>
+
+                    <!-- COND PUMPS -->
+                    <div style="font-size:8px; color:#aaa; margin-left:3px; margin-top:8px;">CONDENSATE PUMPS</div>
+                    <!-- COND 1 -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>COND 1</span><span id="lbl-conda" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-conda"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="conda-m5" onclick="Coolant.setPump('COND','A',-5)">--</div>
+                            <div class="adj-btn" id="conda-m1" onclick="Coolant.setPump('COND','A',-1)">-</div>
+                            <div class="adj-btn active" id="conda-0" onclick="Coolant.setPump('COND','A',0)">.</div>
+                            <div class="adj-btn" id="conda-p1" onclick="Coolant.setPump('COND','A',1)">+</div>
+                            <div class="adj-btn" id="conda-p5" onclick="Coolant.setPump('COND','A',5)">++</div>
+                        </div>
+                    </div>
+                    <!-- COND 2 -->
+                    <div class="slide-group" style="margin-top:2px;">
+                        <div class="slide-head"><span>COND 2</span><span id="lbl-condb" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-condb"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="condb-m5" onclick="Coolant.setPump('COND','B',-5)">--</div>
+                            <div class="adj-btn" id="condb-m1" onclick="Coolant.setPump('COND','B',-1)">-</div>
+                            <div class="adj-btn active" id="condb-0" onclick="Coolant.setPump('COND','B',0)">.</div>
+                            <div class="adj-btn" id="condb-p1" onclick="Coolant.setPump('COND','B',1)">+</div>
+                            <div class="adj-btn" id="condb-p5" onclick="Coolant.setPump('COND','B',5)">++</div>
+                        </div>
+                    </div>
+
+                    <!-- HOTWELL MAKEUP/DRAIN -->
+                    <div class="mu-drain-container">
+                        <div class="tiny-btn" id="btn-hw-mu" onclick="Coolant.toggleHWMu()">HOTWELL MAKEUP</div>
+                        <div class="tiny-btn" id="btn-hw-drain" onclick="Coolant.toggleHWDrain()">HOTWELL DRAIN</div>
+                    </div>
+                </div>
+
+                <!-- Recirculation System -->
+                <div class="ctrl-box" style="margin-top:10px;">
+                    <div class="c-title">Recirculation</div>
+                    <div style="margin-bottom:5px; text-align:center;">
+                        <div class="c-btn pwr-btn" id="btn-rec-sys" onclick="Coolant.toggleSys('REC')">SYS PWR: OFF
+                        </div>
+                    </div>
+                    <!-- PUMP A -->
+                    <div class="slide-group">
+                        <div class="slide-head"><span>PUMP A</span><span id="lbl-rca" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-rca"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="rca-m5" onclick="Coolant.setPump('REC','A',-3.15)">--</div>
+                            <div class="adj-btn" id="rca-m1" onclick="Coolant.setPump('REC','A',-1)">-</div>
+                            <div class="adj-btn active" id="rca-0" onclick="Coolant.setPump('REC','A',0)">.</div>
+                            <div class="adj-btn" id="rca-p1" onclick="Coolant.setPump('REC','A',1)">+</div>
+                            <div class="adj-btn" id="rca-p5" onclick="Coolant.setPump('REC','A',3.15)">++</div>
+                        </div>
+                    </div>
+                    <!-- PUMP B -->
+                    <div class="slide-group" style="margin-top:4px;">
+                        <div class="slide-head"><span>PUMP B</span><span id="lbl-rcb" class="val-txt">TGT: 0</span>
+                        </div>
+                        <div class="slide-trk">
+                            <div class="slide-fill" id="bar-rcb"></div>
+                        </div>
+                        <div class="slide-ctrls">
+                            <div class="adj-btn" id="rcb-m5" onclick="Coolant.setPump('REC','B',-3.15)">--</div>
+                            <div class="adj-btn" id="rcb-m1" onclick="Coolant.setPump('REC','B',-1)">-</div>
+                            <div class="adj-btn active" id="rcb-0" onclick="Coolant.setPump('REC','B',0)">.</div>
+                            <div class="adj-btn" id="rcb-p1" onclick="Coolant.setPump('REC','B',1)">+</div>
+                            <div class="adj-btn" id="rcb-p5" onclick="Coolant.setPump('REC','B',3.15)">++</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ECCS NAV BUTTON -->
+                <button class="nav-btn" onclick="Nav.setView('ECCS')">ECCS PANEL</button>
+            </div>
+
+            <!-- COL 5: LEVEL & LOG -->
+            <div class="panel-col" id="col-level-log">
+                <div class="c-title">Cooling Circuit Levels</div>
+                <div class="three-gauge-container">
+                    <!-- HOTWELL GAUGE -->
+                    <div class="gauge-sub">
+                        <div class="gauge-lbl">HOTWELL</div>
+                        <div class="gauge-val" id="d-hw-lvl">0.00m</div>
+                        <div class="lvl-viz" id="hw-gauge">
+                            <div class="l-tick major" style="top:10%"></div>
+                            <div class="l-tick major" style="top:30%"></div>
+                            <div class="l-tick major" style="top:50%; width:100%; border-bottom:1px solid #08f;"></div>
+                            <div class="l-tick major" style="top:70%"></div>
+                            <div class="l-tick major" style="top:90%"></div>
+                            <div class="l-pointer" id="hw-ptr" style="top:50%">
+                                <div class="l-pointer-line"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- DEAERATOR GAUGE -->
+                    <div class="gauge-sub">
+                        <div class="gauge-lbl">DEAERATOR</div>
+                        <div class="gauge-val" id="d-da-lvl">0.00m</div>
+                        <div class="lvl-viz" id="da-gauge">
+                            <div class="l-tick major" style="top:10%"></div>
+                            <div class="l-tick major" style="top:30%"></div>
+                            <div class="l-tick major" style="top:50%; width:100%; border-bottom:1px solid #08f;"></div>
+                            <div class="l-tick major" style="top:70%"></div>
+                            <div class="l-tick major" style="top:90%"></div>
+                            <div class="l-pointer" id="da-ptr" style="top:50%">
+                                <div class="l-pointer-line"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- REACTOR WATER GAUGE -->
+                    <div class="gauge-sub">
+                        <div class="gauge-lbl">REACTOR</div>
+                        <div class="gauge-val" id="d-lvl">0.00m</div>
+                        <div class="lvl-viz" id="level-gauge">
+                            <div class="l-tick major" style="top:10%"></div>
+                            <div class="l-tick major" style="top:30%"></div>
+                            <div class="l-tick major" style="top:50%; width:100%; border-bottom:1px solid #08f;"></div>
+                            <div class="l-tick major" style="top:70%"></div>
+                            <div class="l-tick major" style="top:90%"></div>
+                            <div class="l-pointer" id="lvl-ptr" style="top:50%">
+                                <div class="l-pointer-line"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="c-title" style="margin-top:10px;">Event Log</div>
+                <div id="log-box"></div>
+            </div>
+        </div> <!-- END MAIN CONSOLE -->
+
+        <!-- ECCS PANEL -->
+        <div id="eccs-console" class="panel-hidden">
+            <!-- COL 1: EMERGENCY COOLING (RCIC / RHR) -->
+            <div class="panel-col">
+                <div class="c-title">Emergency Core Cooling (ECCS)</div>
+                <div class="em-mod-panel">
+                    <!-- RHR SYSTEM -->
+                    <div class="rhr-panel">
+                        <div class="rhr-head">RHR SYSTEM (LPCI / SDC)</div>
+
+                        <div class="rhr-pumps-container">
+                            <!-- Pump L -->
+                            <div class="rhr-pump-train">
+                                <div class="rhr-pump-label">RHR PUMP L</div>
+                                <div class="rhr-mode-group">
+                                    <button class="rhr-btn" id="btn-rhrL-lpci"
+                                        onclick="ECCS.toggleRHRPump('L', 'LPCI')">LPCI</button>
+                                    <button class="rhr-btn" id="btn-rhrL-sdc"
+                                        onclick="ECCS.toggleRHRPump('L', 'SDC')">SDC</button>
+                                </div>
+                            </div>
+                            <!-- Pump R -->
+                            <div class="rhr-pump-train">
+                                <div class="rhr-pump-label">RHR PUMP R</div>
+                                <div class="rhr-mode-group">
+                                    <button class="rhr-btn" id="btn-rhrR-lpci"
+                                        onclick="ECCS.toggleRHRPump('R', 'LPCI')">LPCI</button>
+                                    <button class="rhr-btn" id="btn-rhrR-sdc"
+                                        onclick="ECCS.toggleRHRPump('R', 'SDC')">SDC</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="em-row" style="margin-top:10px; border-top:1px solid #333; padding-top:8px;">
+                            <div style="width:40px; font-size:9px; color:#ccc; font-weight:bold;">LPCI FLOW</div>
+                            <div class="em-stat-bar">
+                                <div class="em-stat-fill" id="em-lpci-fill-eccs" style="background:#ffaa00;"></div>
+                            </div>
+                            <div style="width:30px; font-size:9px; font-family:'Courier New'; color:#fff;"
+                                id="em-lpci-txt-eccs">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BORON SYSTEM -->
+                <div class="ctrl-box" style="margin-top:10px;">
+                    <div class="c-title">SLC (Liquid Boron Injection)</div>
+                    <div class="boron-ui-container" style="padding: 10px;">
+                        <div class="boron-v-group">
+                            <div class="boron-h-group">
+                                <button class="boron-btn-circle" id="btn-boron-eccs"
+                                    onclick="ECCS.injectBoron()"></button>
+                                <div id="boron-label-eccs" class="boron-status-box">IDLE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:15px; margin-bottom:10px; border-top:1px dashed #444; padding-top:10px; text-align:center;">
+                    <button class="tiny-btn" style="color:#ffcc00; border-color:#554400;" onclick="Core.triggerRodDrop()">DEBUG: ROD DROP</button>
+                </div>
+
+                <button class="nav-btn" onclick="Nav.setView('MAIN')">MCR PANEL</button>
+            </div>
+
+            <!-- COL 2: STEAM RELIEF / ADS -->
+            <div class="panel-col">
+                <div class="c-title">Steam Relief Valves / ADS</div>
+                <div class="ctrl-box">
+                    <!-- ADS MONITORING STATION -->
+                    <div class="ads-monitor-frame">
+                        <div class="ads-head">
+
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="ads-led-label">ADS</span>
+                                <div class="ads-led" id="ads-status-led"></div>
+                                <button class="ads-inhibit-btn" id="btn-ads-inhibit"
+                                    onclick="ECCS.toggleADSInhibit()">ADS INHIBIT</button>
+                            </div>
+                        </div>
+                        <div class="ads-display">
+                            <div id="ads-status-text" class="ads-status-msg">MONITORING</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; margin-top: 10px;">
+                        <button class="ads-btn" id="btn-ads-manual-eccs" onclick="ECCS.manualADS()"
+                            style="width:100%;">ACTIVATE ADS MANUAL</button>
+                    </div>
+                    <div class="srv-btn-grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-0-eccs" onclick="ECCS.toggleRelief(0)">1</div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-1-eccs" onclick="ECCS.toggleRelief(1)">2</div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-2-eccs" onclick="ECCS.toggleRelief(2)">3</div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-3-eccs" onclick="ECCS.toggleRelief(3)">4</div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-4-eccs" onclick="ECCS.toggleRelief(4)">5</div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn" id="btn-srv-5-eccs" onclick="ECCS.toggleRelief(5)">6</div>
+                        </div>
+
+                        <!-- RED DIVIDER FOR ADS VALVES -->
+                        <div class="srv-divider"></div>
+
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn ads-locked" id="btn-srv-6-eccs"
+                                onclick="Coolant.toggleRelief(6)">7
+                            </div>
+                        </div>
+                        <div class="srv-unit">
+                            <div class="em-btn srv-btn ads-locked" id="btn-srv-7-eccs"
+                                onclick="Coolant.toggleRelief(7)">8
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL 3: LEVEL DISPLAY & LOG (REDUNDANT) -->
+            <div class="panel-col">
+                <div class="c-title">RPV Water Level</div>
+                <div style="font-family:'Courier New'; text-align:center; color:#fff; background:#000; padding:2px; border:1px solid #555; margin-bottom:5px;"
+                    id="d-lvl-eccs">0.00m</div>
+                <div class="lvl-viz">
+                    <div class="l-tick major" style="top:10%"></div>
+                    <div class="l-tick major" style="top:20%"></div>
+                    <div class="l-tick major" style="top:30%"></div>
+                    <div class="l-tick major" style="top:40%"></div>
+                    <div class="l-tick major" style="top:50%; width:100%; border-bottom:1px solid #08f;"></div>
+                    <div class="l-tick major" style="top:60%"></div>
+                    <div class="l-tick major" style="top:70%"></div>
+                    <div class="l-tick major" style="top:80%"></div>
+                    <div class="l-tick major" style="top:90%"></div>
+                    <div class="l-pointer" id="lvl-ptr-eccs" style="top:50%">
+                        <div class="l-pointer-line"></div>
+                    </div>
+                </div>
+
+                <div class="c-title" style="margin-top:10px;">Event Log</div>
+                <div id="log-box-eccs"></div>
+            </div>
+
+            <!-- COL 4: RCIC TURBOPUMP -->
+            <div class="panel-col">
+                <div class="c-title">RCIC TURBOPUMP</div>
+
+                <div class="ctrl-box">
+                    <div class="flow-meter-block">
+                        <div class="flow-gauge-container">
+                            <div class="flow-gauge-scale">
+                                <span class="f-label lb-0">0</span>
+                                <span class="f-label lb-50">50</span>
+                                <span class="f-label lb-100">100</span>
+                                <span class="f-unit">% FLOW</span>
+                            </div>
+                            <div class="flow-gauge-face"></div>
+                            <div class="flow-needle" id="rcic-needle-eccs"></div>
+                            <div class="flow-pivot"></div>
+                        </div>
+                        <div class="flow-digital" id="rcic-flow-digital-eccs">0.0%</div>
+                        <div class="em-btn" id="btn-rcic-eccs" onclick="ECCS.toggleRCIC()"
+                            style="width:100%; margin-top:10px;">RCIC: OFF</div>
+
+                        <!-- RCIC STEAM INLET VALVE (Always displayed) -->
+                        <div id="rcic-inlet-container" style="margin-top:10px; width:100%;">
+                            <div class="slide-group"
+                                style="background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px; border: 1px solid #444;">
+                                <div class="slide-head" style="font-size: 10px; color: #aaa; margin-bottom: 5px;">
+                                    <span>STEAM INLET</span>
+                                    <span id="lbl-rcic-inlet" class="val-txt" style="color: #4af;">75%</span>
+                                </div>
+                                <div class="slide-trk"
+                                    style="height: 4px; background: #222; border-radius: 2px; overflow: hidden;">
+                                    <div class="slide-fill" id="bar-rcic-inlet"
+                                        style="width: 75%; height: 100%; background: #4af; transition: width 0.1s;">
+                                    </div>
+                                </div>
+                                <div class="slide-ctrls" style="margin-top: 8px; display: flex; gap: 2px;">
+                                    <div class="adj-btn" id="rcicinlet-m5" onclick="ECCS.setRCICInlet(-5)">--</div>
+                                    <div class="adj-btn" id="rcicinlet-m1" onclick="ECCS.setRCICInlet(-1)">-</div>
+                                    <div class="adj-btn active" id="rcicinlet-0" onclick="ECCS.setRCICInlet(0)">.</div>
+                                    <div class="adj-btn" id="rcicinlet-p1" onclick="ECCS.setRCICInlet(1)">+</div>
+                                    <div class="adj-btn" id="rcicinlet-p5" onclick="ECCS.setRCICInlet(5)">++</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- COL 5: WATER MANAGEMENT (CST) -->
+            <div class="panel-col">
+                <div class="c-title">CST MANAGEMENT</div>
+                <div class="ctrl-box">
+                    <div class="cst-gauge-container">
+                        <!-- CST 1 -->
+                        <div class="cst-unit">
+                            <div class="cst-tank">
+                                <div class="cst-fill" id="cst1-fill"></div>
+                                <div class="cst-labels-overlay">
+                                    <span>10m</span>
+                                    <span>5m</span>
+                                    <span>0m</span>
+                                </div>
+                            </div>
+                            <div class="cst-name">CST 1</div>
+                            <div class="cst-readout" id="cst1-lvl-txt">10.0m</div>
+                            <div class="cst-btns">
+                                <button class="em-btn cst-btn" id="btn-m1"
+                                    onclick="ECCS.toggleCSTPump(1, 'm')">MU</button>
+                                <button class="em-btn cst-btn" id="btn-d1"
+                                    onclick="ECCS.toggleCSTPump(1, 'd')">DR</button>
+                            </div>
+                        </div>
+                        <!-- CST 2 -->
+                        <div class="cst-unit">
+                            <div class="cst-tank">
+                                <div class="cst-fill" id="cst2-fill"></div>
+                                <div class="cst-labels-overlay">
+                                    <span>10m</span>
+                                    <span>5m</span>
+                                    <span>0m</span>
+                                </div>
+                            </div>
+                            <div class="cst-name">CST 2</div>
+                            <div class="cst-readout" id="cst2-lvl-txt">10.0m</div>
+                            <div class="cst-btns">
+                                <button class="em-btn cst-btn" id="btn-m2"
+                                    onclick="ECCS.toggleCSTPump(2, 'm')">MU</button>
+                                <button class="em-btn cst-btn" id="btn-d2"
+                                    onclick="ECCS.toggleCSTPump(2, 'd')">DR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- END ECCS PANEL -->
+    </div> <!-- END VIEWPORT CONTAINER -->
+    <!-- JAVASCRIPT LINKS -->
+    <script src="js/state.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/turbine.js"></script>
+    <script src="js/coolant.js"></script>
+    <script src="js/rps.js"></script>
+    <script src="js/eccs.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/vigil.js"></script>
+    <script src="js/auditor.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
