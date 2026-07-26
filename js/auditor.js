@@ -34,7 +34,7 @@ const Auditor = {
         const pressRatio = Math.max(0, S.steam.pressure) / 7100.0;
         const turbinePower = (S.steam.turbine / 100.0) * pressRatio * 8.5 * 10.0;
         const bypassPower = (S.steam.bypass / 100.0) * pressRatio * 2.5 * 10.0;
-
+        
         let sdcPower = 0;
         if (S.safety && S.safety.rhr && S.safety.rhr.pumps) {
             if (S.safety.rhr.pumps.L && S.safety.rhr.pumps.L.mode === 'SDC') sdcPower += 7.5;
@@ -66,7 +66,7 @@ const Auditor = {
         const cst1 = (S.safety.cst && S.safety.cst.cst1_lvl) || 0;
         const cst2 = (S.safety.cst && S.safety.cst.cst2_lvl) || 0;
         const cstMass = (cst1 + cst2) * 50.0;
-
+        
         const currentMStored = waterMassRPV + hwMass + daMass + cstMass;
         const dM_actual = (currentMStored - (A.mStored || currentMStored)) / dt;
 

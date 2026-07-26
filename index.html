@@ -10,6 +10,15 @@
 
 <body>
 
+    <!-- CRASH OVERLAY -->
+    <div id="crash-overlay">
+        <div id="crash-card">
+            <div id="crash-icon">⚠</div>
+            <h1 id="crash-title">SIMULATION CRASHED</h1>
+            <p id="crash-msg"></p>
+            <button id="crash-reload-btn" onclick="location.reload()">RELOAD SIMULATOR</button>
+        </div>
+    </div>
 
 
     <!-- TOP BAR -->
@@ -42,7 +51,7 @@
             <div class="ann-tile c-red" id="ann-lvl-lolo">LEVEL<br>LO-LO</div>
             <div class="ann-tile c-red" id="ann-boron">BORON<br>INJECTION</div>
         </div>
-        <div id="disclaimer" style="font-size: 10px; letter-spacing: 2px;">AI Generated Simulation</div>
+        <div id="disclaimer" style="font-size: 10px; letter-spacing: 2px; cursor: pointer;" onclick="DEBUG_triggerTestCrash()">AI Generated Simulation</div>
 
         <div class="display-group">
             <div class="digital-frame">

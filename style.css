@@ -2678,3 +2678,114 @@ body {
         border-color: #f00;
     }
 }
+
+/* =============================================
+   CRASH OVERLAY
+   ============================================= */
+
+#crash-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    backdrop-filter: blur(8px) brightness(0.4);
+    -webkit-backdrop-filter: blur(8px) brightness(0.4);
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+}
+
+#crash-overlay.visible {
+    display: flex;
+    animation: crash-fade-in 0.35s ease forwards;
+}
+
+@keyframes crash-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+#crash-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    background: linear-gradient(160deg, #1a0505 0%, #110000 100%);
+    border: 1px solid #882222;
+    border-radius: 12px;
+    padding: 52px 64px 44px;
+    box-shadow: 0 0 60px rgba(200, 0, 0, 0.35), 0 8px 40px rgba(0,0,0,0.7);
+    max-width: 520px;
+    width: 90%;
+    text-align: center;
+}
+
+#crash-icon {
+    font-size: 56px;
+    line-height: 1;
+    animation: crash-pulse 1.2s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 12px #ff2200);
+}
+
+@keyframes crash-pulse {
+    from { opacity: 0.7; transform: scale(0.95); }
+    to   { opacity: 1.0; transform: scale(1.05); }
+}
+
+#crash-title {
+    margin: 0;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #ff3333;
+    text-shadow: 0 0 18px rgba(255, 50, 50, 0.6);
+}
+
+#crash-msg {
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #cc6666;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #440000;
+    border-radius: 6px;
+    padding: 10px 16px;
+    word-break: break-word;
+    max-width: 100%;
+    min-height: 36px;
+    line-height: 1.5;
+}
+
+#crash-msg:empty {
+    display: none;
+}
+
+#crash-reload-btn {
+    margin-top: 8px;
+    padding: 12px 36px;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, #8b0000 0%, #c0392b 100%);
+    border: 1px solid #ff4444;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    box-shadow: 0 0 14px rgba(200, 0, 0, 0.4);
+}
+
+#crash-reload-btn:hover {
+    background: linear-gradient(135deg, #a00000 0%, #e74c3c 100%);
+    box-shadow: 0 0 24px rgba(255, 60, 60, 0.6);
+    transform: translateY(-1px);
+}
+
+#crash-reload-btn:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}

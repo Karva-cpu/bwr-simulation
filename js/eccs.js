@@ -416,14 +416,14 @@ const ECCS = {
 
     injectBoron: function () {
         if (!S.elect.safety_active) return;
-
+        
         // Allowed if:
         // 1. SCRAM Failure (ATWS) AND Reactor is in SCRAM
         // 2. Rod Drop Accident AND Reactor is in SCRAM
         const canInject = (S.safety.scramFailure || S.core.rodDropActive) && S.safety.active;
-
+        
         if (!canInject || S.core.boronActive || S.core.boronCleaning) return;
-
+        
         S.core.boronActive = true;
         Logger.log("SLC ACTIVATED: INJECTING LIQUID BORON POISON", 'scram-log');
     },

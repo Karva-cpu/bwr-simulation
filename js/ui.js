@@ -337,7 +337,7 @@ const UI = {
         const parent = document.getElementById(parentId)?.closest('.slide-group');
         if (parent) parent.querySelectorAll('.adj-btn').forEach(b => b.classList.remove('active'));
         const elId = prefix + suffix;
-        if (document.getElementById(elId)) document.getElementById(elId).classList.add('active');
+        document.getElementById(elId)?.classList.add('active');
     },
 
     highlightPump: function (sys, p, val) {
@@ -470,13 +470,10 @@ const UI = {
 
             const isActivePower = isActive;
 
-            if (isActivePower) {
-                if (document.getElementById('d-rpm')) document.getElementById('d-rpm').innerText = S.steam.rpm.toFixed(0);
-                if (document.getElementById('d-avg-rod')) document.getElementById('d-avg-rod').innerText = S.core.avgPos.toFixed(1);
-            } else {
-                if (document.getElementById('d-rpm')) document.getElementById('d-rpm').innerText = "";
-                if (document.getElementById('d-avg-rod')) document.getElementById('d-avg-rod').innerText = "";
-            }
+            const dRpm = document.getElementById('d-rpm');
+            const dAvgRod = document.getElementById('d-avg-rod');
+            if (dRpm) dRpm.innerText = isActivePower ? S.steam.rpm.toFixed(0) : "";
+            if (dAvgRod) dAvgRod.innerText = isActivePower ? S.core.avgPos.toFixed(1) : "";
 
             // Render Three Gauages
             const levels = [
@@ -538,15 +535,17 @@ const UI = {
 
                 b.classList.toggle('ready', syncReady);
             }
-            if (document.getElementById('brk-txt')) document.getElementById('brk-txt').innerText = S.steam.synched ? "CLOSED" : "OPEN";
+            const brkTxt = document.getElementById('brk-txt');
+            if (brkTxt) brkTxt.innerText = S.steam.synched ? "CLOSED" : "OPEN";
 
-            if (document.getElementById('bar-bp')) {
-                document.getElementById('bar-bp').style.width = S.steam.bypass + "%";
-                document.getElementById('lbl-bp').innerText = "OPEN: " + S.steam.bypass.toFixed(0) + "%";
-            }
-            if (document.getElementById('bar-tb')) {
-                document.getElementById('bar-tb').style.width = S.steam.turbine + "%";
-
+            const barBp = document.getElementById('bar-bp');
+            const lblBp = document.getElementById('lbl-bp');
+            if (barBp) barBp.style.width = S.steam.bypass + "%";
+            if (lblBp) lblBp.innerText = "OPEN: " + S.steam.bypass.toFixed(0) + "%";
+            const barTb = document.getElementById('bar-tb');
+            const lblTb = document.getElementById('lbl-tb');
+            if (barTb) barTb.style.width = S.steam.turbine + "%";
+            if (lblTb) {
                 // Visual stabilization: When Auto Pressure is ON, we only update the label
                 // if the value has moved significantly, to prevent flickering between e.g. 21.0 and 21.1
                 if (S.steam.autoPres) {
@@ -556,10 +555,10 @@ const UI = {
                     if (Math.abs(S.steam.turbine - this.lastVisualTb) >= 0.15) {
                         this.lastVisualTb = S.steam.turbine;
                     }
-                    document.getElementById('lbl-tb').innerText = "OPEN: " + this.lastVisualTb.toFixed(1) + "%";
+                    lblTb.innerText = "OPEN: " + this.lastVisualTb.toFixed(1) + "%";
                 } else {
                     this.lastVisualTb = S.steam.turbine;
-                    document.getElementById('lbl-tb').innerText = "OPEN: " + S.steam.turbine.toFixed(1) + "%";
+                    lblTb.innerText = "OPEN: " + S.steam.turbine.toFixed(1) + "%";
                 }
             }
             const rcicFlow = S.safety.rcic.flow || 0;
@@ -571,14 +570,15 @@ const UI = {
             if (rcicDigit) {
                 rcicDigit.innerText = rcicFlow.toFixed(1) + "%";
             }
-            if (document.getElementById('em-lpci-fill')) {
-                document.getElementById('em-lpci-fill').style.width = S.safety.lpci.flow + "%";
-                document.getElementById('em-lpci-txt').innerText = S.safety.lpci.flow.toFixed(0) + "%";
-            }
-            if (document.getElementById('em-lpci-fill-eccs')) {
-                document.getElementById('em-lpci-fill-eccs').style.width = S.safety.lpci.flow + "%";
-                document.getElementById('em-lpci-txt-eccs').innerText = S.safety.lpci.flow.toFixed(0) + "%";
-            }
+            const lpciMcr = document.getElementById('em-lpci-fill');
+            const lpciMcrTxt = document.getElementById('em-lpci-txt');
+            if (lpciMcr) lpciMcr.style.width = S.safety.lpci.flow + "%";
+            if (lpciMcrTxt) lpciMcrTxt.innerText = S.safety.lpci.flow.toFixed(0) + "%";
+
+            const lpciEccs = document.getElementById('em-lpci-fill-eccs');
+            const lpciEccsTxt = document.getElementById('em-lpci-txt-eccs');
+            if (lpciEccs) lpciEccs.style.width = S.safety.lpci.flow + "%";
+            if (lpciEccsTxt) lpciEccsTxt.innerText = S.safety.lpci.flow.toFixed(0) + "%";
 
             // CST Rendering
             const CST = S.safety.cst;

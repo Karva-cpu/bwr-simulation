@@ -85,7 +85,21 @@ const CONFIG = {
     // --- THERMAL LAG ---
     THERMAL_LAG_FACTOR: 0.18,
     STEAM_LAG_FACTOR: 0.24,
+    PRESSURE_LAG_TIME_CONSTANT: 5.0, // seconds for pressure to approach its new value
 };
+
+// =============================================================================
+// DEBUG — CRASH TEST (remove this entire block when no longer needed)
+// Deliberately throws a runtime error inside mainLoop to validate the
+// crash overlay. Triggered by clicking the "AI Generated Simulation" text.
+// To remove: delete from this comment down to "END DEBUG — CRASH TEST".
+// =============================================================================
+function DEBUG_triggerTestCrash() {
+    // Force a TypeError that will propagate through mainLoop's try/catch
+    S.core = null; // Nulling state causes every subsystem to throw on next tick
+}
+// END DEBUG — CRASH TEST
+// =============================================================================
 
 const Logger = {
     lastMsg: "",
@@ -145,12 +159,56 @@ function repairState() {
     if (typeof S.coolant.rec.cavitation === 'undefined') S.coolant.rec.cavitation = false;
 }
 
+function updateElectrical(dt) {
+    const E = S.elect;
+    const genAvailable = S.steam.rpm > 3400;
+
+    // --- GEN BUS PROTECTION LOGIC ---
+    // Automatically trip the GEN ties if generator is disconnected or tripped
+    if (S.steam.rpm <= 3400) {
+        if (E.busA_sw) {
+            E.busA_sw = false;
+            Logger.log("TRIP: GEN -> BUS A Breaker Tripped (Low Generator RPM)");
+        }
+        if (E.busB_sw) {
+            E.busB_sw = false;
+            Logger.log("TRIP: GEN -> BUS B Breaker Tripped (Low Generator RPM)");
+        }
+    }
+
+    // Bus A Logic: XFMR or Main Gen Tie A
+    E.busA_active = E.xfmr || (genAvailable && E.busA_sw);
+
+    // Bus B Logic: Main Gen Tie B ONLY
+    E.busB_active = genAvailable && E.busB_sw;
+
+    // Safety Bus Logic: Bus A or Automatic Battery Backup
+    const hasMainPower = E.busA_active || E.busB_active;
+    E.safety_active = hasMainPower || (E.batt_charge > 0);
+
+    // Battery Logic (Discharge if needed, Recharge if power available)
+    if (!hasMainPower && E.batt_charge > 0) {
+        E.batt_discharging = true;
+        E.batt_charge -= (100 / 120) * dt; // 120s discharge
+        if (E.batt_charge < 0) E.batt_charge = 0;
+    } else {
+        E.batt_discharging = false;
+        // Recharge if power is back
+        if (hasMainPower && E.batt_charge < 100) {
+            E.batt_charge += (100 / 120) * dt; // 120s recharge
+            if (E.batt_charge > 100) E.batt_charge = 100;
+        }
+    }
+}
+
 function mainLoop() {
     try {
         const now = Date.now();
         let dt = (now - S.lastTick) / 1000;
         dt = Core.clamp(dt, 0.0, 0.1);
         S.lastTick = now;
+
+        updateElectrical(dt);
 
         Core.update(dt);
         Turbine.update(dt);
@@ -160,47 +218,7 @@ function mainLoop() {
         Vigil.update(dt);
         if (window.Auditor) Auditor.update(dt);
 
-        // --- ELECTRICAL SYSTEM LOGIC ---
-        const E = S.elect;
-        const genAvailable = S.steam.rpm > 3400;
-        const synched = S.steam.synched;
 
-        // Bus A Logic: XFMR or Main Gen Tie A
-        E.busA_active = E.xfmr || (genAvailable && E.busA_sw);
-
-        // Bus B Logic: Main Gen Tie B ONLY
-        E.busB_active = genAvailable && E.busB_sw;
-
-        // Safety Bus Logic: Bus A or Automatic Battery Backup
-        const hasMainPower = E.busA_active || E.busB_active;
-        E.safety_active = hasMainPower || (E.batt_charge > 0);
-
-        // Battery Logic (Discharge if needed, Recharge if power available)
-        if (!hasMainPower && E.batt_charge > 0) {
-            E.batt_discharging = true;
-            E.batt_charge -= (100 / 120) * dt; // 120s discharge
-            if (E.batt_charge < 0) E.batt_charge = 0;
-        } else {
-            E.batt_discharging = false;
-            // Recharge if power is back
-            if (hasMainPower && E.batt_charge < 100) {
-                E.batt_charge += (100 / 120) * dt; // 120s recharge
-                if (E.batt_charge > 100) E.batt_charge = 100;
-            }
-        }
-
-        // --- GEN BUS PROTECTION LOGIC ---
-        // Automatically trip the GEN ties if generator is disconnected or tripped
-        if (S.steam.rpm <= 3400) {
-            if (E.busA_sw) {
-                E.busA_sw = false;
-                Logger.log("TRIP: GEN -> BUS A Breaker Tripped (Low Generator RPM)");
-            }
-            if (E.busB_sw) {
-                E.busB_sw = false;
-                Logger.log("TRIP: GEN -> BUS B Breaker Tripped (Low Generator RPM)");
-            }
-        }
 
 
 
@@ -230,10 +248,18 @@ function mainLoop() {
 
 
         UI.renderLoop(now);
-
-        requestAnimationFrame(mainLoop);
     } catch (error) {
         console.error("CRITICAL SIMULATION CRASH:", error);
+        Logger.log(`⚠ SIM CRASH: ${error.message || error}`, 'scram-log');
+
+        const overlay = document.getElementById('crash-overlay');
+        const msgEl   = document.getElementById('crash-msg');
+        if (overlay) {
+            if (msgEl) msgEl.textContent = error.message || String(error);
+            overlay.classList.add('visible');
+        }
+    } finally {
+        requestAnimationFrame(mainLoop);
     }
 }
 
