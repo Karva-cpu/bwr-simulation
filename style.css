@@ -1888,6 +1888,62 @@ body {
     border-color: #522;
 }
 
+.eccs-trend-charts {
+    margin-top: 12px;
+    border-top: 1px dashed #444;
+    padding-top: 10px;
+}
+
+.eccs-trend-block + .eccs-trend-block {
+    margin-top: 8px;
+}
+
+.eccs-trend-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 0 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    color: #888;
+    letter-spacing: 0.5px;
+}
+
+.eccs-trend-val {
+    color: #fff;
+    font-size: 11px;
+}
+
+#eccs-aprm-now {
+    color: #33ff33;
+}
+
+#eccs-pres-now {
+    color: #00bfff;
+}
+
+.eccs-trend-charts canvas {
+    display: block;
+    width: 100%;
+    max-width: 230px;
+    margin: 0 auto;
+    background: #000;
+    border: 1px solid #444;
+    border-radius: 3px;
+}
+
+.eccs-trend-scale {
+    display: flex;
+    justify-content: space-between;
+    max-width: 230px;
+    margin: 2px auto 0;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    color: #555;
+}
+
 /* Drastically Smaller ECCS Level Diagram (Adjusted +10%) */
 .eccs-viz {
     height: 310px !important;

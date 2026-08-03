@@ -63,6 +63,10 @@ window.S = {
         lastSample: 0,
         history: [] // Array of {demand, mw}
     },
+    eccsTrend: {
+        lastSample: 0,
+        history: [] // Array of { aprm, presMpa }
+    },
     elect: {
         xfmr: true, // Startup Transformer (Start ON)
         busA_sw: false,

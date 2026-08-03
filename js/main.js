@@ -157,6 +157,7 @@ function repairState() {
         };
     }
     if (typeof S.coolant.rec.cavitation === 'undefined') S.coolant.rec.cavitation = false;
+    if (!S.eccsTrend) S.eccsTrend = { lastSample: 0, history: [] };
 }
 
 function updateElectrical(dt) {
@@ -242,6 +243,19 @@ function mainLoop() {
                 S.network.lastSample = 0;
                 S.network.history.push({ d: S.network.demand, m: S.steam.mw });
                 if (S.network.history.length > 50) S.network.history.shift(); // Keep last 100 seconds
+            }
+        }
+
+        // --- ECCS TREND CHARTS (APRM / Pressure) ---
+        if (S.eccsTrend) {
+            S.eccsTrend.lastSample += dt;
+            if (S.eccsTrend.lastSample >= 2.0) {
+                S.eccsTrend.lastSample = 0;
+                S.eccsTrend.history.push({
+                    aprm: S.core.aprm,
+                    presMpa: S.steam.pressure / 1000
+                });
+                if (S.eccsTrend.history.length > 50) S.eccsTrend.history.shift();
             }
         }
 

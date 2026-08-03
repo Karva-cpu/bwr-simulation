@@ -837,8 +837,7 @@ const UI = {
 
             // Screen Blackout 
             UI.updateNetworkGraph();
-
-
+            UI.updateEccsTrendCharts();
 
         } catch (e) {
             if (!UI.hasErrored) { console.error("UI Render Error:", e); UI.hasErrored = true; }
@@ -914,6 +913,79 @@ const UI = {
         const dispMW = (S.network && typeof S.network.dispMW !== 'undefined') ? S.network.dispMW : S.steam.mw;
         if (S.steam.synched) ctx.fillText(Math.floor(dispMW), w - 35, h - (S.steam.mw * scaleY) + 10);
     },
+
+    drawEccsTrendChart: function (canvasId, history, getValue, maxVal, color, formatVal) {
+        const can = document.getElementById(canvasId);
+        if (!can || !history) return;
+        const ctx = can.getContext('2d');
+        const w = can.width;
+        const h = can.height;
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+            const y = (h / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+        }
+
+        if (history.length < 2) return;
+
+        const scaleY = h / maxVal;
+        const stepX = w / 50;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        history.forEach((pt, i) => {
+            const x = i * stepX;
+            const val = Core.clamp(getValue(pt), 0, maxVal);
+            const y = h - (val * scaleY);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        const current = Core.clamp(getValue(history[history.length - 1]), 0, maxVal);
+        ctx.font = '9px monospace';
+        ctx.fillStyle = color;
+        const labelY = Core.clamp(h - (current * scaleY) - 2, 10, h - 2);
+        ctx.fillText(formatVal(current), w - 40, labelY);
+    },
+
+    updateEccsTrendCharts: function () {
+        if (!S.eccsTrend || !S.eccsTrend.history) return;
+        const hist = S.eccsTrend.history;
+
+        this.drawEccsTrendChart(
+            'eccs-aprm-graph',
+            hist,
+            pt => pt.aprm,
+            150,
+            '#33ff33',
+            v => v.toFixed(1)
+        );
+
+        this.drawEccsTrendChart(
+            'eccs-pres-graph',
+            hist,
+            pt => pt.presMpa,
+            10,
+            '#00bfff',
+            v => v.toFixed(2)
+        );
+
+        const aprmNow = document.getElementById('eccs-aprm-now');
+        const presNow = document.getElementById('eccs-pres-now');
+        if (aprmNow) aprmNow.innerText = S.core.aprm.toFixed(1);
+        if (presNow) presNow.innerText = (S.steam.pressure / 1000).toFixed(2);
+    },
+
     toggleElect: function (param) {
         if (!S.elect.safety_active && param !== 'xfmr') return;
         let isGenTie = (param === 'busA_sw' || param === 'busB_sw');
